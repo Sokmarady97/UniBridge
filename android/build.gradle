@@ -1,0 +1,19 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.1' // Gradle plugin version
+        classpath 'com.google.gms:google-services:4.4.2' // Corrected Google Services plugin declaration
+    }
+}
+
+ext.kotlin_version = '1.9.0'
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
