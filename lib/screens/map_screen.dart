@@ -23,11 +23,15 @@ class _MapPageState extends State<MapPage> {
 
   LatLng? _currentP;
   LatLng? _selectedLocation; // This will hold the selected location
-  bool _isCameraFollowing = true; // Flag to control camera movement
+  // bool _isCameraFollowing = true; // Flag to control camera movement
   Map<PolylineId, Polyline> polylines = {};
   Set<Circle> circles = {}; // For showing a blue circle around current location
   String? _distance = "Unknown"; // To store distance
   String? _duration = "Unknown"; // To store duration
+
+  List<String> _filteredLocations = [];
+  final TextEditingController _searchController =
+      TextEditingController(); // Added controller
 
   final Map<String, LatLng> _locationMap = {
     "A11 대학본부": LatLng(35.134032, 129.1031735),
@@ -128,6 +132,15 @@ class _MapPageState extends State<MapPage> {
     await controller.animateCamera(cameraUpdate);
   }
 
+  // Function to add custom marker with an image
+  Future<BitmapDescriptor> _createCustomMarkerIcon() async {
+    // This assumes you have an image in your assets folder
+    return await BitmapDescriptor.fromAssetImage(
+      ImageConfiguration(size: Size(48, 48)), // Set the size
+      'assets/map-marker.png', // Path to your image
+    );
+  }
+
   LatLngBounds _boundsFromLatLngList(List<LatLng> list) {
     assert(list.isNotEmpty);
     double x0 = list.first.latitude, x1 = list.first.latitude;
@@ -187,7 +200,7 @@ class _MapPageState extends State<MapPage> {
             child: Column(
               children: [
                 _buildSearchBar(),
-                _buildLocationDropdown(),
+                // _buildLocationDropdown(),
                 _buildRouteButton(),
               ],
             ),
@@ -238,19 +251,22 @@ class _MapPageState extends State<MapPage> {
 
     // Add a marker for the selected location from the dropdown
     if (_selectedLocation != null) {
-      // Get the building name by matching the selected location with the map
-      String buildingName = _locationMap.entries
-          .firstWhere(
-            (entry) => entry.value == _selectedLocation!,
-            orElse: () => MapEntry('Unknown Building', _selectedLocation!),
-          )
-          .key;
+      String buildingName =
+          'Selected Location'; // Default name if not found in _locationMap
+
+      // Find the building name using _selectedLocation
+      _locationMap.forEach((key, value) {
+        if (value == _selectedLocation) {
+          buildingName =
+              key; // Set buildingName to the key of the matched value
+        }
+      });
 
       markers.add(
         Marker(
           markerId: MarkerId("_selectedLocation"),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueGreen), // Green for selected location
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           position: _selectedLocation!,
           infoWindow: InfoWindow(
             title: buildingName, // Display building name here
@@ -382,84 +398,102 @@ class _MapPageState extends State<MapPage> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: GooglePlaceAutoCompleteTextField(
-          textEditingController: TextEditingController(),
-          googleAPIKey: GOOGLE_MAP_API_KEY,
-          inputDecoration: InputDecoration(
-            hintText: "Search here...",
-            border: InputBorder.none,
-            filled: true,
-            fillColor: Colors.grey[200], // Light background color
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          ),
-          debounceTime: 600,
-          countries: const ["kr"],
-          isLatLngRequired: true,
-          getPlaceDetailWithLatLng: (Prediction prediction) async {
-            if (prediction.lat != null && prediction.lng != null) {
-              LatLng newLocation = LatLng(
-                double.parse(prediction.lat!),
-                double.parse(prediction.lng!),
-              );
-              setState(() {
-                _selectedLocation = newLocation;
-                _cameraToPosition(newLocation);
-              });
-            }
-          },
-          itemClick: (Prediction prediction) {
-            FocusScope.of(context).requestFocus(FocusNode());
-          },
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController, // Set the controller
+              onChanged: (value) {
+                setState(() {
+                  _filteredLocations = _locationMap.keys
+                      .where((location) =>
+                          location.toLowerCase().contains(value.toLowerCase()))
+                      .toList();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Search here...",
+                border: InputBorder.none,
+                filled: true,
+                fillColor: Colors.grey[200],
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+            if (_filteredLocations.isNotEmpty)
+              Container(
+                height: 150, // Adjust height based on need
+                child: ListView.builder(
+                  itemCount: _filteredLocations.length,
+                  itemBuilder: (context, index) {
+                    String locationName = _filteredLocations[index];
+                    return ListTile(
+                      title: Text(locationName),
+                      onTap: () {
+                        LatLng selectedLatLng = _locationMap[locationName]!;
+                        setState(() {
+                          _selectedLocation = selectedLatLng;
+                          _searchController.text =
+                              locationName; // Update search field
+                          _filteredLocations
+                              .clear(); // Hide the suggestion list
+                        });
+                        _cameraToPosition(selectedLatLng);
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildLocationDropdown() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4.0,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButton<LatLng>(
-        isExpanded: true,
-        hint: Text('Select a location'),
-        underline: SizedBox(),
-        items: _locationMap.entries.map((entry) {
-          return DropdownMenuItem<LatLng>(
-            value: entry.value,
-            child: Text(entry.key),
-          );
-        }).toList(),
-        onChanged: (LatLng? selectedLocation) async {
-          if (selectedLocation != null) {
-            // Store the selected location
-            setState(() {
-              _selectedLocation = selectedLocation;
-            });
+  // Widget _buildLocationDropdown() {
+  //   return Container(
+  //     padding: EdgeInsets.symmetric(horizontal: 16.0),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(8.0),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black26,
+  //           blurRadius: 4.0,
+  //           offset: Offset(0, 2),
+  //         ),
+  //       ],
+  //     ),
+  //     child: DropdownButton<LatLng>(
+  //       isExpanded: true,
+  //       hint: Text('Select a location'),
+  //       underline: SizedBox(),
+  //       items: _locationMap.entries.map((entry) {
+  //         return DropdownMenuItem<LatLng>(
+  //           value: entry.value,
+  //           child: Text(entry.key),
+  //         );
+  //       }).toList(),
+  //       onChanged: (LatLng? selectedLocation) async {
+  //         if (selectedLocation != null) {
+  //           // Store the selected location
+  //           setState(() {
+  //             _selectedLocation = selectedLocation;
+  //           });
 
-            // Optionally, you can move the camera to the selected location
-            await _cameraToPosition(selectedLocation);
+  //           // Optionally, you can move the camera to the selected location
+  //           await _cameraToPosition(selectedLocation);
 
-            // Add polyline to the selected location if needed
-            List<LatLng> routeCoordinates = await getPolylinePoints(
-                _currentP!, selectedLocation, TravelMode.walking);
+  //           // Add polyline to the selected location if needed
+  //           List<LatLng> routeCoordinates = await getPolylinePoints(
+  //               _currentP!, selectedLocation, TravelMode.walking);
 
-            // Call _addPolyline to clear old polyline and add new one
-            _addPolyline(routeCoordinates);
-          }
-        },
-      ),
-    );
-  }
+  //           // Call _addPolyline to clear old polyline and add new one
+  //           _addPolyline(routeCoordinates);
+  //         }
+  //       },
+  //     ),
+  //   );
+  // }
 
   Widget _buildRouteInfoButton() {
     return FloatingActionButton(
