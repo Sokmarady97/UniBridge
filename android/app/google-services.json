@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "156456516501",
+    "project_id": "pknu-201ab",
+    "storage_bucket": "pknu-201ab.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:156456516501:android:832963243b7de9fb40149c",
+        "android_client_info": {
+          "package_name": "com.pknu.pknu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMUNMy68CPiA5PDexcEEjRk9txATmh5JY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
