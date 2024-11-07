@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // For storing sign-out flag
+import 'welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const String id = 'profile_screen';
@@ -114,7 +116,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void saveProfile() async {
+  Future<void> saveProfile() async {
     if (_image == null) {
       _showErrorDialog('No image selected');
       return;
@@ -160,7 +162,6 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Method to open the link
   Future<void> _launchURL() async {
     const url = 'https://forms.gle/PnQ1d4RAggHWFE2K6';
     if (await canLaunch(url)) {
@@ -168,6 +169,14 @@ class ProfileScreenState extends State<ProfileScreen> {
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  Future<void> _signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false); // Set the login flag to false
+    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+    Navigator.of(context)
+        .pushReplacementNamed(WelcomeScreen.id); // Navigate to Welcome screen
   }
 
   @override
@@ -236,6 +245,15 @@ class ProfileScreenState extends State<ProfileScreen> {
               ElevatedButton(
                 onPressed: _launchURL, // Button to launch the URL
                 child: const Text('Request for improvement'),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _signOut, // Sign Out button
+                child: const Text('Sign Out'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Colors.red, // Set button color to red for emphasis
+                ),
               ),
             ],
           ),

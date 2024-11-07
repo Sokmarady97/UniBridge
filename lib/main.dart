@@ -8,6 +8,7 @@ import 'package:pknu/screens/login_screen.dart'; // Import the LoginScreen
 import 'package:pknu/screens/registration_screen.dart'; // Import the RegistrationScreen
 import 'package:pknu/screens/forgot_password_screen.dart';
 import 'package:pknu/screens/map_screen.dart';
+import 'screens/Initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,8 +27,9 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF075E54),
         hintColor: const Color(0xFF128C7E),
       ),
-      initialRoute: WelcomeScreen.id,
+      initialRoute: '/', // Start with the Initializer route
       routes: {
+        '/': (context) => const Initializer(), // Initializer checks login state
         WelcomeScreen.id: (context) => const WelcomeScreen(),
         LoginScreen.id: (context) => const LoginScreen(),
         RegistrationScreen.id: (context) => const RegistrationScreen(),
